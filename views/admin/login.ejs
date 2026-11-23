@@ -1,0 +1,15 @@
+<%- include('../partials/header', { title: '后台登录' }) %>
+
+<article>
+  <h1>后台登录</h1>
+  <% if (error) { %><div class="err"><%= error %></div><% } %>
+  <form class="admin-form" method="post" action="/admin/login">
+    <label>用户名</label>
+    <input type="text" name="username" required>
+    <label>密码</label>
+    <input type="password" name="password" required>
+    <button type="submit">登录</button>
+  </form>
+</article>
+
+<%- include('../partials/footer') %>

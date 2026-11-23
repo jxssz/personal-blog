@@ -1,0 +1,47 @@
+<%- include('partials/header', { title: tagName || null }) %>
+
+<% if (tagList.length) { %>
+<div class="tag-bar">
+  <a href="/" class="<%= !tagName ? 'active' : '' %>">全部</a>
+  <% tagList.forEach(function (t) { %>
+    <a href="/tag/<%= encodeURIComponent(t.name) %>" class="<%= tagName === t.name ? 'active' : '' %>"><%= t.name %><span class="cnt"><%= t.count %></span></a>
+  <% }); %>
+</div>
+<% } %>
+
+<% if (tagName) { %>
+<h1 class="filter-title">标签「<%= tagName %>」下的文章（<%= posts.length %>）</h1>
+<% } %>
+
+<ul class="post-list">
+  <% posts.forEach(function (post, i) { %>
+    <li>
+      <span class="num" aria-hidden="true"><%= ('0' + ((page - 1) * 10 + i + 1)).slice(-2) %></span>
+      <div class="title"><a href="/post/<%= post.id %>"><%= post.title %></a></div>
+      <% if (post.summary) { %><div class="summary"><%= post.summary %></div><% } %>
+      <% var tags = (post.tags || '').split(',').filter(function (t) { return t; }); %>
+      <% if (tags.length) { %>
+        <div class="pills">
+          <% tags.forEach(function (t) { %>
+            <a class="pill" href="/tag/<%= encodeURIComponent(t) %>"><%= t %></a>
+          <% }); %>
+        </div>
+      <% } %>
+      <div class="meta"><%= post.created_at.slice(0, 10) %></div>
+    </li>
+  <% }); %>
+  <% if (!posts.length) { %>
+    <li class="empty-tip"><%= tagName ? '该标签下还没有文章。' : '还没有文章，去后台写一篇吧。' %></li>
+  <% } %>
+</ul>
+
+<% if (totalPages > 1) { %>
+<div class="pager">
+  <% var base = tagName ? '/tag/' + encodeURIComponent(tagName) : '/'; %>
+  <% if (page > 1) { %><a href="<%= base %>?page=<%= page - 1 %>">上一页</a><% } %>
+  <span class="current"><%= page %> / <%= totalPages %></span>
+  <% if (page < totalPages) { %><a href="<%= base %>?page=<%= page + 1 %>">下一页</a><% } %>
+</div>
+<% } %>
+
+<%- include('partials/footer') %>

@@ -1,0 +1,19 @@
+<%- include('../partials/header', { title: '设置' }) %>
+<%- include('nav') %>
+
+<article>
+  <h1>设置</h1>
+  <% if (saved) { %><div class="notice">已保存</div><% } %>
+  <% if (error) { %><div class="err"><%= error %></div><% } %>
+  <form class="admin-form" method="post" action="/admin/settings">
+    <label>关于页内容</label>
+    <textarea name="about" style="min-height:120px"><%= about %></textarea>
+    <label>原密码（修改密码时必填）</label>
+    <input type="password" name="old_password">
+    <label>新密码（留空则不修改）</label>
+    <input type="password" name="new_password">
+    <p><button type="submit">保存</button></p>
+  </form>
+</article>
+
+<%- include('../partials/footer') %>

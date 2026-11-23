@@ -1,0 +1,35 @@
+<%- include('partials/header', { title: post.title }) %>
+
+<article>
+  <h1><%= post.title %></h1>
+  <% var tags = (post.tags || '').split(',').filter(function (t) { return t; }); %>
+  <% if (tags.length) { %>
+  <div class="pills">
+    <% tags.forEach(function (t) { %>
+      <a class="pill" href="/tag/<%= encodeURIComponent(t) %>"><%= t %></a>
+    <% }); %>
+  </div>
+  <% } %>
+  <div class="meta"><%= post.created_at.slice(0, 10) %></div>
+  <div class="content"><%- post.html %></div>
+</article>
+
+<div id="comments">
+  <h2>留言（<%= comments.length %>）</h2>
+  <% comments.forEach(function (c) { %>
+    <div class="comment">
+      <span class="who"><%= c.name %></span><span class="when"><%= c.date %></span>
+      <div class="body"><%= c.content %></div>
+    </div>
+  <% }); %>
+  <% if (!comments.length) { %><p class="tip">还没有留言。</p><% } %>
+
+  <form class="comment-form" method="post" action="/post/<%= post.id %>/comment">
+    <input type="text" name="name" placeholder="你的名字（可选，默认匿名）" maxlength="50">
+    <textarea name="content" rows="4" placeholder="写下你的留言…" maxlength="1000" required></textarea>
+    <button type="submit">提交留言</button>
+    <span class="tip">留言将在博主审核后显示</span>
+  </form>
+</div>
+
+<%- include('partials/footer') %>

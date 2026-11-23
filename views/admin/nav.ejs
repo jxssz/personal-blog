@@ -1,0 +1,9 @@
+<% if (typeof adminNav !== 'undefined' && adminNav) { %>
+<nav class="admin-nav">
+  <a href="/admin" class="<%= currentPath === '/' || (currentPath.indexOf('/post/') === 0 && currentPath !== '/post/new') ? 'active' : '' %>">文章管理</a>
+  <a href="/admin/post/new" class="<%= currentPath === '/post/new' ? 'active' : '' %>">写新文章</a>
+  <a href="/admin/comments" class="<%= currentPath === '/comments' ? 'active' : '' %>">留言管理<% if (pendingCount) { %>（<%= pendingCount %> 待审核）<% } %></a>
+  <a href="/admin/settings" class="<%= currentPath === '/settings' ? 'active' : '' %>">设置</a>
+  <a href="/admin/logout" class="right">退出登录</a>
+</nav>
+<% } %>

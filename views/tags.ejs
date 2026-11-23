@@ -1,0 +1,15 @@
+<%- include('partials/header', { title: '标签' }) %>
+
+<h1>标签</h1>
+
+<ul class="tag-list">
+  <% tagList.forEach(function (t) { %>
+    <li>
+      <a href="/tag/<%= encodeURIComponent(t.name) %>"><%= t.name %></a>
+      <span class="cnt"><%= t.count %></span>
+    </li>
+  <% }); %>
+  <% if (!tagList.length) { %><li class="empty-tip">还没有标签。</li><% } %>
+</ul>
+
+<%- include('partials/footer') %>

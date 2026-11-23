@@ -1,0 +1,30 @@
+<%- include('../partials/header', { title: '留言管理' }) %>
+<%- include('nav') %>
+
+<article>
+  <h1>留言管理</h1>
+  <table class="admin-table">
+    <tr><th>留言</th><th>文章</th><th>状态</th><th>日期</th><th>操作</th></tr>
+    <% comments.forEach(function (c) { %>
+      <tr>
+        <td>
+          <strong><%= c.name %></strong>：<%= c.content %>
+        </td>
+        <td><%= c.post_title || '（文章已删除）' %></td>
+        <td><span class="badge <%= c.approved ? 'yes' : 'pending' %>"><%= c.approved ? '已展示' : '待审核' %></span></td>
+        <td><%= formatDate(c.created_at) %></td>
+        <td>
+          <form method="post" action="/admin/comment/<%= c.id %>/approve" style="display:inline">
+            <button type="submit" class="ghost"><%= c.approved ? '取消展示' : '通过' %></button>
+          </form>
+          <form method="post" action="/admin/comment/<%= c.id %>/delete" style="display:inline" onsubmit="return confirm('确定删除这条留言？')">
+            <button type="submit" class="ghost" style="color:#c66">删除</button>
+          </form>
+        </td>
+      </tr>
+    <% }); %>
+    <% if (!comments.length) { %><tr><td colspan="5">还没有留言。</td></tr><% } %>
+  </table>
+</article>
+
+<%- include('../partials/footer') %>
