@@ -68,11 +68,30 @@ app.use((err, req, res, next) => {
 
 const renderMarkdown = (md) => {
   let html = marked.parse(md || '', { breaks: true });
-  // 视频支持：![x](xx.mp4) 或 [视频](xx.mp4) 渲染成网页播放器
-  html = html.replace(/<img src="([^"]*\.(mp4|webm|ogg|ogv|mov|m4v)[^"]*)"[^>]*>/gi,
-    '<video controls preload="metadata" src="$1" style="max-width:100%;border-radius:8px"></video>');
-  html = html.replace(/<a href="([^"]*\.(mp4|webm|ogg|ogv|mov|m4v)[^"]*)"[^>]*>([\s\S]*?)<\/a>/gi,
-    '<video controls preload="metadata" src="$1" style="max-width:100%;border-radius:8px"></video>');
+
+  // 视频：![视频](x.mp4) 或 [视频](x.mp4) → Plyr 播放器
+  html = html.replace(/<img src="([^"]*\.(?:mp4|webm|ogg|ogv|mov|m4v)[^"]*)"[^>]*>/gi,
+    '<video class="plyr-video" controls preload="metadata" playsinline src="$1"></video>');
+  html = html.replace(/<a href="([^"]*\.(?:mp4|webm|ogg|ogv|mov|m4v)[^"]*)"[^>]*>([\s\S]*?)<\/a>/gi,
+    '<video class="plyr-video" controls preload="metadata" playsinline src="$1"></video>');
+
+  // 图片 → PhotoSwipe 灯箱
+  html = html.replace(/<img src="([^"]+)"([^>]*)>/gi, function (img, src, attrs) {
+    var alt = /alt="([^"]*)"/i.exec(attrs);
+    return '<a class="pswp-item" href="' + src + '" data-pswp-width="1600" data-pswp-height="1200"><img src="' + src + '" alt="' + (alt ? esc(alt[1]) : '') + '" loading="lazy"></a>';
+  });
+
+  // :::gallery 块 → Swiper 轮播（只在文章内，不是单独相册页）
+  html = html.replace(/<p>:::gallery<\/p>\s*([\s\S]*?)\s*<p>:::<\/p>/gi, function (whole, inner) {
+    var slides = [];
+    inner.replace(/<a class="pswp-item"[^>]*><img src="([^"]+)" alt="([^"]*)"[^>]*><\/a>/gi, function (match, src, alt) {
+      slides.push('<div class="swiper-slide"><a class="pswp-item" href="' + src + '" data-pswp-width="1600" data-pswp-height="1200"><img src="' + src + '" alt="' + alt + '" loading="lazy"></a></div>');
+      return match;
+    });
+    if (!slides.length) return whole;
+    return '<div class="swiper gallery-swiper"><div class="swiper-wrapper">' + slides.join('') + '</div><div class="swiper-pagination"></div><div class="swiper-button-prev"></div><div class="swiper-button-next"></div></div>';
+  });
+
   return html;
 };
 
@@ -106,6 +125,12 @@ function checkLogin(req, res, next) {
 
 function formatDate(d) {
   return (d || '').slice(0, 10);
+}
+
+// Hero 特效白名单
+function validEffect(value) {
+  var allowed = ['none', 'particles', 'waves', 'net', 'globe', 'three', 'lottie'];
+  return allowed.indexOf(value) !== -1 ? value : 'particles';
 }
 
 // 解析标签输入：按逗号/顿号/空格拆分，去重、去空
@@ -154,7 +179,8 @@ app.get('/', (req, res) => {
     page,
     totalPages: Math.max(1, Math.ceil(total / size)),
     tagList: allTags(),
-    tagName: null
+    tagName: null,
+    nav: 'home'
   });
 });
 
@@ -175,23 +201,40 @@ app.get('/tag/:name', (req, res) => {
     page,
     totalPages: Math.max(1, Math.ceil(total / size)),
     tagList: allTags(),
-    tagName
+    tagName,
+    nav: 'posts'
   });
 });
 
-// 文章列表（Lambda /posts）
-app.get('/posts', (req, res) => res.redirect('/'));
+// 文章列表（Lambda /posts，与首页同一列表，不跳转）
+app.get('/posts', (req, res) => {
+  const page = Math.max(1, parseInt(req.query.page) || 1);
+  const size = 10;
+  const total = db.prepare('SELECT COUNT(*) AS c FROM posts WHERE published = 1').get().c;
+  const posts = db.prepare(
+    'SELECT id, title, summary, tags, created_at FROM posts WHERE published = 1 ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?'
+  ).all(size, (page - 1) * size);
+  res.render('index', {
+    posts,
+    page,
+    totalPages: Math.max(1, Math.ceil(total / size)),
+    tagList: allTags(),
+    tagName: null,
+    nav: 'posts'
+  });
+});
 
 // 标签列表（Lambda /tags）
 app.get('/tags', (req, res) => {
-  res.render('tags', { tagList: allTags() });
+  res.render('tags', { tagList: allTags(), nav: 'tags' });
 });
 
-// RSS
-app.get('/rss', (req, res) => {
+// RSS（Lambda 用 /index.xml，保留 /rss 兼容）
+app.get(['/rss', '/index.xml'], (req, res) => {
+  const base = req.protocol + '://' + req.get('host');
   const posts = db.prepare('SELECT id, title, summary, created_at FROM posts WHERE published = 1 ORDER BY created_at DESC LIMIT 20').all();
-  const items = posts.map(p => `<item><title>${esc(p.title)}</title><link>http://localhost:${PORT}/post/${p.id}</link><description>${esc(p.summary || '')}</description><pubDate>${new Date(p.created_at).toUTCString()}</pubDate></item>`).join('');
-  res.type('application/rss+xml').send(`<?xml version="1.0"?><rss version="2.0"><channel><title>我的博客</title><link>http://localhost:${PORT}/</link><description>个人博客</description>${items}</channel></rss>`);
+  const items = posts.map(p => `<item><title>${esc(p.title)}</title><link>${base}/post/${p.id}</link><description>${esc(p.summary || '')}</description><pubDate>${new Date(p.created_at).toUTCString()}</pubDate></item>`).join('');
+  res.type('application/rss+xml').send(`<?xml version="1.0"?><rss version="2.0"><channel><title>我的博客</title><link>${base}/</link><description>个人博客</description>${items}</channel></rss>`);
 });
 
 // 关于页
@@ -209,6 +252,8 @@ app.get('/post/:id', (req, res) => {
   res.render('post', {
     post: { ...post, html: renderMarkdown(post.content) },
     comments: comments.map(c => ({ ...c, date: formatDate(c.created_at) })),
+    latestPosts: db.prepare('SELECT id, title FROM posts WHERE published = 1 ORDER BY created_at DESC, id DESC LIMIT 5').all(),
+    nav: 'posts',
     formatDate
   });
 });
@@ -267,8 +312,9 @@ app.post('/admin/post/new', checkLogin, (req, res) => {
   const title = (req.body.title || '').trim().slice(0, 200);
   if (!title) return res.status(400).send('标题不能为空');
   db.prepare(
-    'INSERT INTO posts (title, content, summary, published, tags) VALUES (?, ?, ?, ?, ?)'
-  ).run(title, req.body.content || '', (req.body.summary || '').trim().slice(0, 300), req.body.published === '1' ? 1 : 0, parseTags(req.body.tags));
+    'INSERT INTO posts (title, content, summary, published, tags, cover, hero_effect, hero_lottie) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+  ).run(title, req.body.content || '', (req.body.summary || '').trim().slice(0, 300), req.body.published === '1' ? 1 : 0,
+    parseTags(req.body.tags), req.body.cover || '', validEffect(req.body.hero_effect), req.body.hero_lottie || '');
   res.redirect('/admin');
 });
 
@@ -283,8 +329,9 @@ app.post('/admin/post/:id/edit', checkLogin, (req, res) => {
   const title = (req.body.title || '').trim().slice(0, 200);
   if (!title) return res.status(400).send('标题不能为空');
   db.prepare(
-    "UPDATE posts SET title = ?, content = ?, summary = ?, published = ?, tags = ?, updated_at = datetime('now', 'localtime') WHERE id = ?"
-  ).run(title, req.body.content || '', (req.body.summary || '').trim().slice(0, 300), req.body.published === '1' ? 1 : 0, parseTags(req.body.tags), req.params.id);
+    "UPDATE posts SET title = ?, content = ?, summary = ?, published = ?, tags = ?, cover = ?, hero_effect = ?, hero_lottie = ?, updated_at = datetime('now', 'localtime') WHERE id = ?"
+  ).run(title, req.body.content || '', (req.body.summary || '').trim().slice(0, 300), req.body.published === '1' ? 1 : 0,
+    parseTags(req.body.tags), req.body.cover || '', validEffect(req.body.hero_effect), req.body.hero_lottie || '', req.params.id);
   res.redirect('/admin');
 });
 
@@ -333,6 +380,6 @@ app.post('/admin/settings', checkLogin, (req, res) => {
   res.redirect('/admin/settings?saved=1');
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`个人博客已启动：http://localhost:${PORT}（后台：http://localhost:${PORT}/admin）`);
 });

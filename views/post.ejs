@@ -1,24 +1,50 @@
-<%- include('partials/header', { title: post.title }) %>
+<%- include('partials/header', { title: post.title, nav: 'posts' }) %>
+
+<div class="reading-progress" aria-hidden="true"></div>
+
+<nav class="breadcrumbs" aria-label="Breadcrumb">
+  <ol>
+    <li><a href="/">首页</a></li>
+    <li><span class="breadcrumb-separator">/</span></li>
+    <li><a href="/posts">文章</a></li>
+    <li><span class="breadcrumb-separator">/</span></li>
+    <li><span><%= post.title %></span></li>
+  </ol>
+</nav>
 
 <article>
-  <h1><%= post.title %></h1>
+  <% if (post.cover) { %>
+  <figure class="post-cover-wrap">
+    <img class="post-cover" src="<%= post.cover %>" alt="<%= post.title %> 封面" fetchpriority="high">
+  </figure>
+  <% } %>
+  <h1 data-split><%= post.title %></h1>
+  <p class="post-meta">
+    <time datetime="<%= post.created_at.slice(0, 10) %>"><%= new Date(post.created_at).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' }) %></time>
+    <span data-read-time></span>
+  </p>
+  <% if (post.hero_effect === 'lottie' && post.hero_lottie) { %>
+  <div class="post-hero-lottie" data-lottie="<%= post.hero_lottie %>"></div>
+  <% } %>
+  <div class="content"><%- post.html %></div>
   <% var tags = (post.tags || '').split(',').filter(function (t) { return t; }); %>
   <% if (tags.length) { %>
-  <div class="pills">
-    <% tags.forEach(function (t) { %>
-      <a class="pill" href="/tag/<%= encodeURIComponent(t) %>"><%= t %></a>
-    <% }); %>
-  </div>
+  <footer>
+    <strong>标签：</strong>
+    <ul id="tags">
+      <% tags.forEach(function (t) { %>
+      <li><a href="/tag/<%= encodeURIComponent(t) %>"><%= t %></a></li>
+      <% }); %>
+    </ul>
+  </footer>
   <% } %>
-  <div class="meta"><%= post.created_at.slice(0, 10) %></div>
-  <div class="content"><%- post.html %></div>
 </article>
 
 <div id="comments">
   <h2>留言（<%= comments.length %>）</h2>
   <% comments.forEach(function (c) { %>
     <div class="comment">
-      <span class="who"><%= c.name %></span><span class="when"><%= c.date %></span>
+      <span class="who"><%= c.name %></span> <span class="when"><%= c.date %></span>
       <div class="body"><%= c.content %></div>
     </div>
   <% }); %>
@@ -31,5 +57,20 @@
     <span class="tip">留言将在博主审核后显示</span>
   </form>
 </div>
+
+<% if (typeof latestPosts !== 'undefined' && latestPosts && latestPosts.length) { %>
+<aside aria-label="Sidebar">
+  <section>
+    <h2>最新内容</h2>
+    <nav aria-label="Recent posts">
+      <ul>
+        <% latestPosts.forEach(function (p) { %>
+        <li><a href="/post/<%= p.id %>"><%= p.title %></a></li>
+        <% }); %>
+      </ul>
+    </nav>
+  </section>
+</aside>
+<% } %>
 
 <%- include('partials/footer') %>

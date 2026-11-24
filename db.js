@@ -8,6 +8,7 @@ if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir);
 
 const db = new Database(path.join(dataDir, 'blog.db'));
 db.pragma('journal_mode = WAL');
+db.pragma('foreign_keys = ON');
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS posts (
@@ -35,10 +36,31 @@ db.exec(`
   );
 `);
 
-// 兼容旧库：给 posts 补充 tags 列（逗号分隔的标签）
+// 兼容旧库：给 posts 补列
 const postCols = db.pragma('table_info(posts)').map(function (c) { return c.name; });
 if (postCols.indexOf('tags') === -1) {
   db.exec("ALTER TABLE posts ADD COLUMN tags TEXT NOT NULL DEFAULT ''");
 }
+if (postCols.indexOf('cover') === -1) {
+  db.exec("ALTER TABLE posts ADD COLUMN cover TEXT NOT NULL DEFAULT ''");
+}
+if (postCols.indexOf('hero_effect') === -1) {
+  db.exec("ALTER TABLE posts ADD COLUMN hero_effect TEXT NOT NULL DEFAULT 'particles'");
+}
+if (postCols.indexOf('hero_lottie') === -1) {
+  db.exec("ALTER TABLE posts ADD COLUMN hero_lottie TEXT NOT NULL DEFAULT ''");
+}
+
+// 一篇文章多个媒体：图片 / 视频 / 动画 / 音频
+db.exec(`
+  CREATE TABLE IF NOT EXISTS media (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    post_id INTEGER NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+    kind TEXT NOT NULL,
+    url TEXT NOT NULL,
+    caption TEXT NOT NULL DEFAULT '',
+    sort INTEGER NOT NULL DEFAULT 0
+  );
+`);
 
 module.exports = db;

@@ -1,8 +1,23 @@
 <%- include('partials/header', { title: '关于' }) %>
 
 <article>
-  <h1>关于</h1>
+  <h1 data-split>关于</h1>
+  <div class="about-logo" data-lottie="none" aria-hidden="true">λ</div>
   <div class="content"><%= about %></div>
+  <div class="timeline">
+    <div class="timeline-item">
+      <h2>写点什么</h2>
+      <p>把想法整理成文字，是我理解世界的方式。</p>
+    </div>
+    <div class="timeline-item">
+      <h2>放点画面</h2>
+      <p>图片、视频、动画，都可以长在一篇文章里。</p>
+    </div>
+    <div class="timeline-item">
+      <h2>慢慢来</h2>
+      <p>这里不赶时间，只留值得留下的东西。</p>
+    </div>
+  </div>
 </article>
 
 <%- include('partials/footer') %>

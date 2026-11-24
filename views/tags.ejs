@@ -1,15 +1,29 @@
-<%- include('partials/header', { title: '标签' }) %>
+<%- include('partials/header', { title: '标签', nav: 'tags' }) %>
+
+<nav class="breadcrumbs" aria-label="Breadcrumb">
+  <ol>
+    <li><a href="/">首页</a></li>
+    <li><span class="breadcrumb-separator">/</span></li>
+    <li><span>标签</span></li>
+  </ol>
+</nav>
 
 <h1>标签</h1>
 
-<ul class="tag-list">
-  <% tagList.forEach(function (t) { %>
-    <li>
-      <a href="/tag/<%= encodeURIComponent(t.name) %>"><%= t.name %></a>
-      <span class="cnt"><%= t.count %></span>
-    </li>
+<div class="tag-cloud" aria-label="标签动画">
+  <% tagList.forEach(function (t, i) { %>
+    <a class="chip chip-<%= i % 3 %>" href="/tag/<%= encodeURIComponent(t.name) %>" style="font-size: <%= (1 + t.count * 0.35).toFixed(2) %>rem">
+      <%= t.name %><small><%= t.count %></small>
+    </a>
   <% }); %>
-  <% if (!tagList.length) { %><li class="empty-tip">还没有标签。</li><% } %>
-</ul>
+  <% if (!tagList.length) { %><span class="tip">还没有标签。</span><% } %>
+</div>
+
+<% tagList.forEach(function (t) { %>
+<article>
+  <h2><a href="/tag/<%= encodeURIComponent(t.name) %>"><%= t.name %></a></h2>
+</article>
+<% }); %>
+<% if (!tagList.length) { %><p>还没有标签。</p><% } %>
 
 <%- include('partials/footer') %>

@@ -1,47 +1,68 @@
-<%- include('partials/header', { title: tagName || null }) %>
+<%- include('partials/header', { title: tagName || null, nav: typeof nav !== 'undefined' ? nav : (tagName ? 'posts' : 'home') }) %>
 
-<% if (tagList.length) { %>
-<div class="tag-bar">
-  <a href="/" class="<%= !tagName ? 'active' : '' %>">全部</a>
-  <% tagList.forEach(function (t) { %>
-    <a href="/tag/<%= encodeURIComponent(t.name) %>" class="<%= tagName === t.name ? 'active' : '' %>"><%= t.name %><span class="cnt"><%= t.count %></span></a>
-  <% }); %>
-</div>
+<div class="scroll-progress" aria-hidden="true"></div>
+
+<% if (!tagName) { %>
+<section class="hero">
+  <div id="hero-canvas" class="hero-canvas" aria-hidden="true"></div>
+  <p class="hero-kicker">个人博客 · 多媒体叙事</p>
+  <h1 data-split>写下来，让它留久一点。</h1>
+  <p class="hero-sub">技术、生活、随笔 —— 一篇文章里，可以有文字、图片、视频和动画。</p>
+  <a class="hero-cta" href="#posts">开始阅读 ↓</a>
+</section>
 <% } %>
 
 <% if (tagName) { %>
-<h1 class="filter-title">标签「<%= tagName %>」下的文章（<%= posts.length %>）</h1>
+<nav class="breadcrumbs" aria-label="Breadcrumb">
+  <ol>
+    <li><a href="/">首页</a></li>
+    <li><span class="breadcrumb-separator">/</span></li>
+    <li><span>文章</span></li>
+  </ol>
+</nav>
+<h1>标签「<%= tagName %>」下的文章（<%= posts.length %>）</h1>
 <% } %>
 
-<ul class="post-list">
-  <% posts.forEach(function (post, i) { %>
-    <li>
-      <span class="num" aria-hidden="true"><%= ('0' + ((page - 1) * 10 + i + 1)).slice(-2) %></span>
-      <div class="title"><a href="/post/<%= post.id %>"><%= post.title %></a></div>
-      <% if (post.summary) { %><div class="summary"><%= post.summary %></div><% } %>
-      <% var tags = (post.tags || '').split(',').filter(function (t) { return t; }); %>
-      <% if (tags.length) { %>
-        <div class="pills">
-          <% tags.forEach(function (t) { %>
-            <a class="pill" href="/tag/<%= encodeURIComponent(t) %>"><%= t %></a>
-          <% }); %>
-        </div>
-      <% } %>
-      <div class="meta"><%= post.created_at.slice(0, 10) %></div>
-    </li>
-  <% }); %>
-  <% if (!posts.length) { %>
-    <li class="empty-tip"><%= tagName ? '该标签下还没有文章。' : '还没有文章，去后台写一篇吧。' %></li>
+<section id="posts" class="article-list">
+<% posts.forEach(function (post) { %>
+<article class="article-card">
+  <h2><a href="/post/<%= post.id %>"><%= post.title %></a></h2>
+  <time datetime="<%= post.created_at.slice(0, 10) %>"><%= new Date(post.created_at).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' }) %></time>
+  <% var tags = (post.tags || '').split(',').filter(function (t) { return t; }); %>
+  <% if (tags.length) { %>
+  <span class="tag-inline">[<% tags.forEach(function (t, i) { %><a href="/tag/<%= encodeURIComponent(t) %>"><%= t %></a><% if (i < tags.length - 1) { %>, <% } %><% }); %>]</span>
   <% } %>
-</ul>
+  <section>
+    <% if (post.summary) { %><p><%= post.summary %></p><% } %>
+    <a href="/post/<%= post.id %>" aria-label="阅读更多关于 <%= post.title %>">阅读更多...</a>
+  </section>
+</article>
+<% }); %>
+<% if (!posts.length) { %>
+<article><p><%= tagName ? '该标签下还没有文章。' : '还没有文章，去后台写一篇吧。' %></p></article>
+<% } %>
+</section>
 
-<% if (totalPages > 1) { %>
-<div class="pager">
+<nav class="pager" aria-label="Pagination">
   <% var base = tagName ? '/tag/' + encodeURIComponent(tagName) : '/'; %>
-  <% if (page > 1) { %><a href="<%= base %>?page=<%= page - 1 %>">上一页</a><% } %>
-  <span class="current"><%= page %> / <%= totalPages %></span>
-  <% if (page < totalPages) { %><a href="<%= base %>?page=<%= page + 1 %>">下一页</a><% } %>
-</div>
+  <% if (page > 1) { %><a href="<%= base %>?page=<%= page - 1 %>">上一页</a> · <% } %>
+  <span aria-current="page">第 <%= page %> / <%= totalPages %> 页</span>
+  <% if (page < totalPages) { %> · <a href="<%= base %>?page=<%= page + 1 %>">下一页</a><% } %>
+</nav>
+
+<% if (!tagName && posts.length) { %>
+<aside class="latest-scroll" aria-label="Sidebar">
+  <section>
+    <h2>最新内容</h2>
+    <nav aria-label="Recent posts">
+      <ul class="latest-track">
+        <% posts.slice(0, 5).forEach(function (post) { %>
+        <li><a href="/post/<%= post.id %>"><%= post.title %></a></li>
+        <% }); %>
+      </ul>
+    </nav>
+  </section>
+</aside>
 <% } %>
 
 <%- include('partials/footer') %>

@@ -10,6 +10,23 @@
     <input type="text" name="summary" value="<%= post ? post.summary : '' %>">
     <label>标签（用逗号分隔，最多 10 个，如：技术, 生活）</label>
     <input type="text" name="tags" value="<%= post ? post.tags : '' %>">
+    <label>封面图（可选）</label>
+    <div class="upload-bar">
+      <input type="text" name="cover" id="cover-url" value="<%= post ? post.cover : '' %>" placeholder="上传后自动填入，或粘贴 /uploads/xxx.jpg">
+      <input type="file" id="upload-cover" accept="image/*" hidden>
+      <button type="button" class="ghost" onclick="document.getElementById('upload-cover').click()">上传封面</button>
+      <span class="tip" id="cover-status"></span>
+    </div>
+    <label>Hero 特效（仅文章页使用）</label>
+    <select name="hero_effect">
+      <% var effects = [['none','无'],['particles','粒子'],['waves','波浪'],['net','网格'],['globe','地球'],['three','3D'],['lottie','Lottie']]; %>
+      <% var current = post ? post.hero_effect : 'particles'; %>
+      <% effects.forEach(function (e) { %>
+      <option value="<%= e[0] %>" <%= current === e[0] ? 'selected' : '' %>><%= e[1] %></option>
+      <% }); %>
+    </select>
+    <label>Lottie 动画路径（Hero 特效选 Lottie 时填写）</label>
+    <input type="text" name="hero_lottie" value="<%= post ? post.hero_lottie : '' %>" placeholder="/lottie/xxx.json">
     <label>正文（支持 Markdown，可插入图片和视频）</label>
     <div class="upload-bar">
       <input type="file" id="upload-image" accept="image/*" hidden>
@@ -62,6 +79,26 @@
 
   document.getElementById('upload-image').addEventListener('change', function () { upload(this, false); });
   document.getElementById('upload-video').addEventListener('change', function () { upload(this, true); });
+
+  var coverInput = document.getElementById('upload-cover');
+  var coverUrl = document.getElementById('cover-url');
+  var coverStatus = document.getElementById('cover-status');
+  coverInput.addEventListener('change', function () {
+    var file = this.files && this.files[0];
+    if (!file) return;
+    coverStatus.textContent = '正在上传封面 ' + file.name + ' …';
+    var fd = new FormData();
+    fd.append('file', file);
+    fetch('/admin/upload', { method: 'POST', body: fd })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.error) { coverStatus.textContent = data.error; return; }
+        coverUrl.value = data.url;
+        coverStatus.textContent = '封面已设置：' + data.url;
+      })
+      .catch(function () { coverStatus.textContent = '上传失败，请重试'; });
+    this.value = '';
+  });
 })();
 </script>
 
